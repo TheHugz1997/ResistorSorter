@@ -19,16 +19,17 @@ void setup() {
 
 void loop() {
 
-    stepper.set_direction_spin(HIGH);
-
-    stepper.rotate_n(1, 5);
-
-    delay(4000);
-
     stepper.set_direction_spin(LOW);
 
-    stepper.rotate_n(1, 5);
+    //Serial.print("THIS IS HIGH DIRECTION");
 
-    delay(4000);
-    
+    stepper.rotate_n(1, 10);
+    delay(1000);
+       
+        stepper.set_direction_spin(HIGH);
+
+    //Serial.print("THIS IS HIGH DIRECTION");
+
+    stepper.rotate_n(1, 10);
+    delay(1000);
 }
