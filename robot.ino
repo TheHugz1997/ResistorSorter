@@ -2,10 +2,15 @@
 
 
 #include "./Hardware/stepper/stepper.h"
+#include "./Hardware/stepper/distance.h"
 
 
-Stepper stepper = Stepper(2,3);
+//Stepper stepper = Stepper(2,3);
 Servo servo;
+
+Distance distance = Distance(2, 3);
+
+
 
 
 int pos = 0;
@@ -14,22 +19,23 @@ void setup() {
 
     servo.attach(5);
 
+
+
 }
 
 
 void loop() {
 
-    stepper.set_direction_spin(LOW);
+    // The argument is the distance you want to travel in mm
+    int steps = distance.convert_distance_into_steps(500);
 
-    //Serial.print("THIS IS HIGH DIRECTION");
+    Serial.println(steps);
+    
+    distance.set_direction_pin(LOW);
+    
+    distance.rotate_n(steps);
 
-    stepper.rotate_n(1, 10);
-    delay(1000);
-       
-        stepper.set_direction_spin(HIGH);
+    delay(5000);
 
-    //Serial.print("THIS IS HIGH DIRECTION");
 
-    stepper.rotate_n(1, 10);
-    delay(1000);
 }
