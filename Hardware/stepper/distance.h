@@ -4,6 +4,7 @@
 #define DIAMETER_OF_THE_PULLEY 12
 // This distance is in mm
 #define DISTANCE_BY_STEP 0.1885
+// #define DISTANCE_BY_STEP 0.1884956
 
 class Distance{
 
@@ -33,8 +34,8 @@ Distance::Distance(int directionPin, int stepPin){
 }
 
 int Distance::convert_distance_into_steps(int distance) {
-    if(distance > 1000) {
-        return 1000;
+    if(distance > 950) {
+        return 950;
     } 
     else {
         float stepsNumber = distance / DISTANCE_BY_STEP;
