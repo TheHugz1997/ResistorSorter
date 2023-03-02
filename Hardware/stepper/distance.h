@@ -4,7 +4,8 @@
 #define DIAMETER_OF_THE_PULLEY 12
 // This distance is in mm
 #define DISTANCE_BY_STEP 0.1885
-// #define DISTANCE_BY_STEP 0.1884956
+// This is the constant error correction on the number of steps
+#define CORRECTION_STEP 238
 
 class Distance{
 
@@ -39,7 +40,8 @@ int Distance::convert_distance_into_steps(int distance) {
     } 
     else {
         float stepsNumber = distance / DISTANCE_BY_STEP;
-        int correctedStepsNumber = static_cast<int>(stepsNumber);
+        int approxStepsNumber = static_cast<int>(stepsNumber);
+        int correctedStepsNumber = approxStepsNumber - CORRECTION_STEP;
         return correctedStepsNumber;
     }
 }

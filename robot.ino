@@ -31,23 +31,28 @@ void loop() {
     // The argument is the distance you want to travel in mm
     delay(6000);
 
-    int steps = distance.convert_distance_into_steps(600);
-
-    Serial.println(steps);
+    int steps = distance.convert_distance_into_steps(650);
     
     distance.set_direction_pin(LOW);
-    
+
     distance.rotate_n(steps);
 
     delay(5000);
 
-    int stepsBack = distance.convert_distance_into_steps(600);
+    // int stepsTwo = distance.convert_distance_into_steps(150);
+    
+    // distance.set_direction_pin(LOW);
+    
+    // distance.rotate_n(stepsTwo);
+
+    // delay(5000);
+
+    int stepsBack = distance.convert_distance_into_steps(650);
     
     distance.set_direction_pin(HIGH);
     
     distance.rotate_n(stepsBack);
 
-    delay(5000);
-
+    // delay(6000);
 
 }
