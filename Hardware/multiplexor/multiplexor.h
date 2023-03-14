@@ -9,6 +9,18 @@ int SIG_pin = A0;
 
 float resistance;
 double mux_resistance[16] = {392.0,0,3920.0,0,2710.0,0,38800.0,0,27000.0,0,393000.0, 0,270000.0,0,3920000.0,0};
+const float ranges[7][12] = {
+    {1.0,1.2,1.5,1.8,2.2,2.7,3.3,3.9,4.7,5.6,6.8,8.2}, 
+    {10.0,12.0,15.0,18.0,22.0,27.0,33.0,39.0,47.0,56.0,68.0,82.0}, 
+    {100.0,120.0,150.0,180.0,220.0,270.0,330.0,390.0,470.0,560.0,680.0,820.0},
+    {1000.0,1200.0,1500.0,1800.0,2200.0,2700.0,3300.0,3900.0,4700.0,5600.0,6800.0,8200.0},
+    {10000.0,12000.0,15000.0,18000.0,22000.0,27000.0,33000.0,39000.0,47000.0,56000.0,68000.0,82000.0},
+    {100000.0,120000.0,150000.0,180000.0,220000.0,270000.0,330000.0,390000.0,470000.0,560000.0,680000.0,820000.0},
+    {1000000.0,1200000.0,1500000.0,1800000.0,2200000.0,2700000.0,3300000.0,3900000.0,4700000.0,5600000.0,6800000.0,8200000.0}
+    
+    
+    
+    };
 
 void initialize_mux(){
   pinMode(s0, OUTPUT); 
@@ -68,29 +80,38 @@ float read_mux(int channel){
 
 
 float calc_res(int channel,float voltage){
-  
-  //Serial.print("Res value : ");
   double Rmux = mux_resistance[channel];
-  //float ans;
-  //if (channel==0){
-    // for the first channel, resistance is only of 392 ohms -> we cannot neglect the input resistance of the mux : 70 ohms
-  resistance = ((Rmux+70.0) * voltage) / (5.0 - voltage);
-  //}
-  //else{
-    //Serial.println("Range >1");
-    //ans = (Rmux * voltage) / (5.0 - voltage);
-  //}
+  //input resistance of the mux : 70 ohms
+  resistance = ((Rmux+60.0) * voltage) / (5.0 - voltage);
+
   return resistance;
+}
+
+void to_norm_E12(float res,int range){
+  for (int i = 0; i<11;i++){
+    float curr_diff = abs(ranges[range][i] - res);
+    float next_diff = abs(ranges[range][i+1] -res);
+    if(curr_diff<next_diff){
+      Serial.print("Res E12 value :");
+      Serial.println(ranges[range][i]);
+      Serial.print("Index");
+      Serial.println(i);
+      Serial.print("Range :");
+      Serial.println(range);
+      break;
+    }
+    if (i==10){
+      Serial.print("Res E12 value :");
+      Serial.println(ranges[range][11]);
+      break;
+    }
+    
+  }
+
 }
 
 void auto_calibrate(){
   // Umes = (Rinc/Rmux+Rinc)* 5V
-  // pour Rinc grand -> tension tend vers 5V
-  // pour Rinc petit -> tension tend vers 0V 
-
-
-  // pour Rmux grand -> si Rinc grand , tension tend vers 5v (break vers 4.85V)
-  //                 -> si Rinc petit, tenion tend vers 0v
   Serial.println("auto_calibrate");
   for(int channel =14; channel>=0;channel-=2){ 
 
@@ -104,35 +125,56 @@ void auto_calibrate(){
     float res = calc_res(channel,voltage);
     Serial.println(res);
 
-    Serial.print("Your resistance :");
-    Serial.println(res);
+    
     
     if (channel==14 && voltage >0.95){
       Serial.println("Should be greater than 1M");
-      Serial.println("");
+      to_norm_E12(res,6);
 
       break;
         
     }
     if (channel ==8 && voltage > 3.9){
       Serial.println("Should be between 100k and 1M");
+      to_norm_E12(res,5);
       break;
     }
     if (channel == 6 && voltage > 0.9){
       Serial.println("Should be between 10k and 100k");
+      to_norm_E12(res,4);
       break;
     }
     if (channel == 2 && voltage > 0.9){
       Serial.println("Should be between 1k and 10k");
+      to_norm_E12(res,3);
       break;
     }
     if (channel == 0 && voltage > 0.01){
-      Serial.println("Should be lower than 1k");
+      if(res>100.0){
+        // force channel two for more precision
+        voltage = read_mux(2);
+        res = calc_res(2,voltage);
+        Serial.print("Recalibrated res : ");
+        Serial.println(res);
+        to_norm_E12(res,2);
+        Serial.println("Should be between 100 and 1k");
+
+      }
+      else if(res>10.0 && res<100.0){
+        Serial.println("Should be between 10 and 100");
+        to_norm_E12(res,1);
+      }
+      else{
+        Serial.println("Should be lower than 10");
+        to_norm_E12(res,0);
+      }
       break;
     }
-    //delay(4000);
+    
   }
 }
+
+
 
 void debug(){
   //Loop through and read all 16 values

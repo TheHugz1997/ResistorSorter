@@ -1,4 +1,5 @@
 {
-    "board": "arduino:avr:mega",
-    "port": "COM3"
+    "board": "arduino:avr:uno",
+    "port": "COM3",
+    "sketch": "robot.ino"
 }

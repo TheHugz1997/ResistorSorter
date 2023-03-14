@@ -3,11 +3,11 @@
 int servo_pin = 5;
 Servo servo;
 
-initialize_servo(){
+void initialize_servo(){
     servo.attach(servo_pin);
 }
 
 
-rotate_servo(int angle)(
+void rotate_servo(int angle){
     servo.write(angle);
-)
+}
