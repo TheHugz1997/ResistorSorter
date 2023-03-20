@@ -34,7 +34,7 @@ void setup() {
 
   pinMode(stepPin, OUTPUT);
   pinMode(dirPin, OUTPUT);
-  digitalWrite(dirPin, HIGH);
+
 
   stateMachine = 0;
 }
@@ -46,6 +46,7 @@ void loop() {
   {
   case 0:
   {
+    digitalWrite(dirPin, HIGH);
     stepperEnabled = true;
     stepCount = 0;
     Serial.println("STATE ZERO");
@@ -92,6 +93,17 @@ void loop() {
     stepCount = 0;
     stepperEnabled = true;
     stateMachine = 2;
+
+    if(limitSwitch.isPressed()){
+      Serial.println("The limit switch: UNTOUCHED -> TOUCHED");
+      stateMachine = 1;
+    }
+
+    if(limitSwitch.isReleased()){
+      Serial.println("The limit switch: TOUCHED -> UNTOUCHED");
+      stepperEnabled = false;   
+      stateMachine = 0;
+    }
     break;
   }
   
