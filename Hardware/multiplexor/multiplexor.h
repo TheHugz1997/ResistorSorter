@@ -154,7 +154,7 @@ void auto_calibrate(){
     }
     if (channel == 0 && voltage > 0.01){
       Serial.println(res);
-      if(res>95.0){
+      if(res>92.0){
         // force channel two for more precision
         //voltage = read_mux(2);
         //res = calc_res(2,voltage);
@@ -165,7 +165,7 @@ void auto_calibrate(){
         Serial.println("(Should be between 100 and 1k)");
 
       }
-      else if(res>9.2 && res<95.0){
+      else if(res>9.2 && res<92.0){
         Serial.println(res);
         Serial.println("(Should be between 10 and 100)");
         to_norm_E12(res,1);
