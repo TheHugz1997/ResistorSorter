@@ -1,24 +1,24 @@
 
 #include "Hardware/stepper/stepper.h"
 #include "Hardware/multiplexor/multiplexor.h"
-#include "Hardware/servo/servo.h"
+#include <Servo.h>
 
 
 Stepper stepper = Stepper(2,3);
-
+Servo servo;
 
 int pos = 0;
 
 void setup() {
-    initialize_servo();
+    // initialize_servo();
     initialize_mux();
+    servo.attach(6);
+    servo.write(0);
     Serial.begin(9600);
 }
 
 
 void loop() {
-    //___________________SERVO___________________
-    
     //___________________STEPPER___________________
     // stepper.set_direction_spin(LOW);
     // //Serial.print("THIS IS HIGH DIRECTION");
@@ -33,6 +33,25 @@ void loop() {
 
 
     //___________________Resistor mesurement___________________
+    // servo.write(45);
+    // Serial.println("Place your resistance");
+    // Serial.println("");
+    // delay(3000);
+    // servo.write(90);
     auto_calibrate();
-    delay(15000);
+    delay(1000);
+    // drop_resistance();
+    // delay(2000);
 }
+
+
+
+
+void drop_resistance(){
+    servo.write(45);
+    delay(1000);
+    servo.write(0);
+    delay(1000);
+}
+
+

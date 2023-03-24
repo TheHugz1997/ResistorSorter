@@ -1,6 +1,6 @@
 #include <Servo.h>
 
-int servo_pin = 5;
+int servo_pin = 6;
 Servo servo;
 
 void initialize_servo(){

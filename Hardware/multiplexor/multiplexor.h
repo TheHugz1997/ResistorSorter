@@ -17,9 +17,6 @@ const float ranges[7][12] = {
     {10000.0,12000.0,15000.0,18000.0,22000.0,27000.0,33000.0,39000.0,47000.0,56000.0,68000.0,82000.0},
     {100000.0,120000.0,150000.0,180000.0,220000.0,270000.0,330000.0,390000.0,470000.0,560000.0,680000.0,820000.0},
     {1000000.0,1200000.0,1500000.0,1800000.0,2200000.0,2700000.0,3300000.0,3900000.0,4700000.0,5600000.0,6800000.0,8200000.0}
-    
-    
-    
     };
 
 void initialize_mux(){
@@ -68,10 +65,11 @@ float read_mux(int channel){
   int val = analogRead(SIG_pin);
   
   int mean = 0;
-  for(int i = 0; i <3;i++){
+  for(int i = 0; i <5;i++){
     mean += analogRead(SIG_pin);
+    delay(250);
   }
-  mean = mean/3;
+  mean = mean/5;
   //return the value
   float voltage = (mean * 5.0) / 1024.0;
   return voltage;
@@ -82,7 +80,7 @@ float read_mux(int channel){
 float calc_res(int channel,float voltage){
   double Rmux = mux_resistance[channel];
   //input resistance of the mux : 70 ohms
-  resistance = ((Rmux+60.0) * voltage) / (5.0 - voltage);
+  resistance = ((Rmux+70.0) * voltage) / (5.0 - voltage);
 
   return resistance;
 }
@@ -94,10 +92,10 @@ void to_norm_E12(float res,int range){
     if(curr_diff<next_diff){
       Serial.print("Res E12 value :");
       Serial.println(ranges[range][i]);
-      Serial.print("Index");
-      Serial.println(i);
-      Serial.print("Range :");
-      Serial.println(range);
+      // Serial.print("Index");
+      // Serial.println(i);
+      // Serial.print("Range :");
+      // Serial.println(range);
       break;
     }
     if (i==10){
@@ -112,60 +110,69 @@ void to_norm_E12(float res,int range){
 
 void auto_calibrate(){
   // Umes = (Rinc/Rmux+Rinc)* 5V
-  Serial.println("auto_calibrate");
+  Serial.println("auto_calibrating...");
+  Serial.println("");
   for(int channel =14; channel>=0;channel-=2){ 
 
-    Serial.print("Input channel ");
-    Serial.println(channel);
-    Serial.print("Voltage :");
+    // Serial.print("Input channel ");
+    // Serial.println(channel);
+    // Serial.print("Voltage :");
     float voltage = read_mux(channel);
 
-    Serial.println(voltage);
-    Serial.print("Res value :");
+    // Serial.println(voltage);
+    // Serial.print("Res value :");
     float res = calc_res(channel,voltage);
-    Serial.println(res);
+    // Serial.println(res);
 
     
     
     if (channel==14 && voltage >0.95){
-      Serial.println("Should be greater than 1M");
+      Serial.println(res);
+      Serial.println("(Should be greater than 1M)");
       to_norm_E12(res,6);
 
       break;
         
     }
     if (channel ==8 && voltage > 3.9){
-      Serial.println("Should be between 100k and 1M");
+      Serial.println(res);
+      Serial.println("(Should be between 100k and 1M)");
       to_norm_E12(res,5);
       break;
     }
     if (channel == 6 && voltage > 0.9){
-      Serial.println("Should be between 10k and 100k");
+      Serial.println(res);
+      Serial.println("(Should be between 10k and 100k)");
       to_norm_E12(res,4);
       break;
     }
     if (channel == 2 && voltage > 0.9){
-      Serial.println("Should be between 1k and 10k");
+      Serial.println(res);
+      Serial.println("(Should be between 1k and 10k)");
       to_norm_E12(res,3);
       break;
     }
     if (channel == 0 && voltage > 0.01){
-      if(res>100.0){
+      Serial.println(res);
+      if(res>95.0){
         // force channel two for more precision
-        voltage = read_mux(2);
-        res = calc_res(2,voltage);
-        Serial.print("Recalibrated res : ");
-        Serial.println(res);
-        to_norm_E12(res,2);
-        Serial.println("Should be between 100 and 1k");
+        //voltage = read_mux(2);
+        //res = calc_res(2,voltage);
+        //res = round(res * 0.1) / 0.;
+        // Serial.print("Recalibrated res : ");
+        // Serial.println(res);
+        to_norm_E12(res+5.0,2);
+        Serial.println("(Should be between 100 and 1k)");
 
       }
-      else if(res>10.0 && res<100.0){
-        Serial.println("Should be between 10 and 100");
+      else if(res>9.2 && res<95.0){
+        Serial.println(res);
+        Serial.println("(Should be between 10 and 100)");
         to_norm_E12(res,1);
       }
       else{
-        Serial.println("Should be lower than 10");
+        Serial.println(res);
+        Serial.println("(Should be lower than 10)");
         to_norm_E12(res,0);
       }
       break;
