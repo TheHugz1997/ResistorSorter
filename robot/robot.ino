@@ -3,6 +3,7 @@
 #include <avr/io.h>
 
 ezButton limitSwitch(7);  // create ezButton object that attach to pin 7;
+ezButton limitSwitchEnd(8);  // create ezButton object that attach to pin 8;
 
 unsigned int stateMachine;
 
@@ -15,12 +16,14 @@ volatile int stepCount = 0;
 volatile bool isHigh = false;
 
 int stop_time = 0;
+int stop_time_two = 0;
 
 volatile bool stepperEnabled = false;
 
 void setup() {
   Serial.begin(9600);
   limitSwitch.setDebounceTime(50); // set debounce time to 50 milliseconds
+  limitSwitchEnd.setDebounceTime(50); // set debounce time to 50 milliseconds
 
   cli(); // disable interrupts
   TCCR2A = 0;
@@ -41,12 +44,13 @@ void setup() {
 
 void loop() {
   limitSwitch.loop(); // MUST call the loop() function first
+  limitSwitchEnd.loop();
 
   switch (stateMachine)
   {
   case 0:
   {
-    digitalWrite(dirPin, HIGH);
+    digitalWrite(dirPin, LOW);
     stepperEnabled = true;
     stepCount = 0;
     Serial.println("STATE ZERO");
@@ -68,6 +72,7 @@ void loop() {
     int switch_state = limitSwitch.getState();
     if(switch_state == HIGH){
         Serial.println("The limit switch: UNTOUCHED");
+        stop_time = 0;
         stateMachine = 0;
     }
     else{
@@ -76,6 +81,7 @@ void loop() {
         stepperEnabled = false;
         if(stop_time > 50){
           stateMachine = 2;
+          stop_time = 0;
         } else {
           stop_time++;
         }
@@ -88,23 +94,47 @@ void loop() {
   {
 
     Serial.println("STATE TWO");
-    stop_time = 0;
-    digitalWrite(dirPin, LOW);
+    digitalWrite(dirPin, HIGH);
     stepCount = 0;
     stepperEnabled = true;
     stateMachine = 2;
 
-    if(limitSwitch.isPressed()){
+    if(limitSwitchEnd.isPressed()){
       Serial.println("The limit switch: UNTOUCHED -> TOUCHED");
-      stateMachine = 1;
+      stateMachine = 3;
     }
 
-    if(limitSwitch.isReleased()){
-      Serial.println("The limit switch: TOUCHED -> UNTOUCHED");
-      stepperEnabled = false;   
-      stateMachine = 0;
+    if(limitSwitchEnd.isReleased()){
+      Serial.println("The limit switch: TOUCHED -> UNTOUCHED"); 
+      stateMachine = 2;
     }
     break;
+  }
+
+  case 3:
+  {
+
+    Serial.println("STATE THREE");
+    int switch_end_state = limitSwitchEnd.getState();
+    if(switch_end_state == HIGH){
+        Serial.println("The limit switch: UNTOUCHED");
+        stop_time_two = 0;
+        stateMachine = 2;
+    }
+    else{
+        Serial.println("The limit switch: TOUCHED");
+        stateMachine = 3;
+        stepperEnabled = false;
+        if(stop_time_two > 50){
+          stateMachine = 0;
+          stop_time_two = 0;
+        } else {
+          stop_time_two++;
+        }
+    }
+
+    break;
+
   }
   
   default:
