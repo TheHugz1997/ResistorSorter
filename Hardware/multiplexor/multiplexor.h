@@ -1,8 +1,8 @@
 //Mux control pins
-int s0 = 8;
-int s1 = 9;
-int s2 = 10;
-int s3 = 11;
+int s0 = 2;
+int s1 = 3;
+int s2 = 4;
+int s3 = 5;
 
 //Mux in "SIG" pin
 int SIG_pin = A0;
@@ -64,14 +64,14 @@ float read_mux(int channel){
   //read the value at the SIG pin
   int val = analogRead(SIG_pin);
   
-  int mean = 0;
-  for(int i = 0; i <5;i++){
-    mean += analogRead(SIG_pin);
-    delay(250);
-  }
-  mean = mean/5;
+  // int mean = 0;
+  // for(int i = 0; i <5;i++){
+  //   mean += analogRead(SIG_pin);
+  //   delay(250);
+  // }
+  // mean = mean/5;
   //return the value
-  float voltage = (mean * 5.0) / 1024.0;
+  float voltage = (val * 5.0) / 1024.0;
   return voltage;
 }
 
@@ -85,30 +85,34 @@ float calc_res(int channel,float voltage){
   return resistance;
 }
 
-void to_norm_E12(float res,int range){
+float to_norm_E12(float res,int range){
+  float out = 0.0;
   for (int i = 0; i<11;i++){
     float curr_diff = abs(ranges[range][i] - res);
     float next_diff = abs(ranges[range][i+1] -res);
-    if(curr_diff<next_diff){
-      Serial.print("Res E12 value :");
-      Serial.println(ranges[range][i]);
-      // Serial.print("Index");
-      // Serial.println(i);
-      // Serial.print("Range :");
-      // Serial.println(range);
-      break;
-    }
     if (i==10){
       Serial.print("Res E12 value :");
       Serial.println(ranges[range][11]);
+      out = ranges[range][11];
+      // return out;
       break;
     }
+    if(curr_diff<next_diff){
+      Serial.print("Res E12 value :");
+      Serial.println(ranges[range][i]);
+      out = ranges[range][i];
+      // return out;
+      break;
+    }
+
     
   }
+  return out;
 
 }
 
-void auto_calibrate(){
+float auto_calibrate(){
+  float output = 0.0;
   // Umes = (Rinc/Rmux+Rinc)* 5V
   Serial.println("auto_calibrating...");
   Serial.println("");
@@ -118,6 +122,13 @@ void auto_calibrate(){
     // Serial.println(channel);
     // Serial.print("Voltage :");
     float voltage = read_mux(channel);
+    // int mean = 0;
+    // for(int i = 0; i <5;i++){
+    //   mean += read_mux(channel);
+    //   delay(250);
+    // }
+    // mean = mean/5;
+    // voltage = mean;
 
     // Serial.println(voltage);
     // Serial.print("Res value :");
@@ -129,27 +140,30 @@ void auto_calibrate(){
     if (channel==14 && voltage >0.95){
       Serial.println(res);
       Serial.println("(Should be greater than 1M)");
-      to_norm_E12(res,6);
-
+      output = to_norm_E12(res,6);
+      // return output;
       break;
         
     }
     if (channel ==8 && voltage > 3.9){
       Serial.println(res);
       Serial.println("(Should be between 100k and 1M)");
-      to_norm_E12(res,5);
+      output = to_norm_E12(res,5);
+      // return output;
       break;
     }
     if (channel == 6 && voltage > 0.9){
       Serial.println(res);
       Serial.println("(Should be between 10k and 100k)");
-      to_norm_E12(res,4);
+      output = to_norm_E12(res,4);
+      // return output;
       break;
     }
     if (channel == 2 && voltage > 0.9){
       Serial.println(res);
       Serial.println("(Should be between 1k and 10k)");
-      to_norm_E12(res,3);
+      output = to_norm_E12(res,3);
+      // return output;
       break;
     }
     if (channel == 0 && voltage > 0.01){
@@ -161,24 +175,26 @@ void auto_calibrate(){
         //res = round(res * 0.1) / 0.;
         // Serial.print("Recalibrated res : ");
         // Serial.println(res);
-        to_norm_E12(res+5.0,2);
+        output = to_norm_E12(res+5.0,2);
         Serial.println("(Should be between 100 and 1k)");
+        // return output;
 
       }
       else if(res>9.2 && res<92.0){
         Serial.println(res);
         Serial.println("(Should be between 10 and 100)");
-        to_norm_E12(res,1);
+        output = to_norm_E12(res,1);
+        // return output;
       }
       else{
         Serial.println(res);
         Serial.println("(Should be lower than 10)");
-        to_norm_E12(res,0);
+        output = to_norm_E12(res,0);
+        // return output;
       }
       break;
     }
-    
-  }
+  }return output;
 }
 
 
