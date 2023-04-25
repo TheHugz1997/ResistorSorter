@@ -1,3 +1,5 @@
+// #include <LCD_I2C.h>
+
 #include <LiquidCrystal_I2C.h>
 
 #include "Hardware/stepper/stepper.h"
@@ -8,8 +10,9 @@
 
 // initialize the library by associating any needed LCD interface pin
 // with the arduino pin number it is connected to
-const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
-LiquidCrystal_I2C lcd(0x27, 16, 4); // I2C address 0x27, 16 column and 2 rows
+// const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
+// LiquidCrystal_I2C lcd(0x27, 16, 2); // I2C address 0x27, 16 column and 2 rows
+LiquidCrystal_I2C lcd(0x27, 16, 2); // I2C address 0x27, 16 column and 2 rows
 
 
 Stepper stepper = Stepper(2,3);
@@ -32,13 +35,12 @@ void setup() {
     Serial.println("Place your resistance");
     Serial.println("");
     pinMode(buttonPin, INPUT);
+    display_init();
+
 }
 
 
 void loop() {
-    lcd.clear();                 // clear display
-    lcd.setCursor(0, 0);         // move cursor to   (0, 0)
-    lcd.print("Place Resistor"); 
     //___________________Resistor mesurement___________________
     buttonState = digitalRead(buttonPin);
     if (buttonState==HIGH){
@@ -48,17 +50,22 @@ void loop() {
         display_infos(res);
         drop_resistance();
         delay(2000);
+        display_init();
     }
 }
 
 
-
+void display_init(){
+    lcd.clear();                 // clear display
+    lcd.setCursor(0, 0);         // move cursor to   (0, 0)
+    lcd.print("Place Resistor"); 
+}
 
 void display_infos(float res){
     lcd.clear();
-    lcd.setCursor(0, 2);
+    lcd.setCursor(0, 1);
     lcd.print(res);
-    lcd.setCursor(0,3);
+    lcd.setCursor(0,2);
     lcd.print("ohms");
     Serial.println(res);
 }
