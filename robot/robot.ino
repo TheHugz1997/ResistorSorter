@@ -2,8 +2,8 @@
 #include <Arduino.h>
 #include <avr/io.h>
 
-ezButton limitSwitch(7);  // create ezButton object that attach to pin 7;
-ezButton limitSwitchEnd(8);  // create ezButton object that attach to pin 8;
+ezButton limitSwitch(8);  // create ezButton object that attach to pin 7;
+ezButton limitSwitchEnd(9);  // create ezButton object that attach to pin 8;
 
 unsigned int stateMachine;
 
@@ -53,7 +53,7 @@ void loop() {
     digitalWrite(dirPin, LOW);
     stepperEnabled = true;
     stepCount = 0;
-    Serial.println("STATE ZERO");
+    // Serial.println("STATE ZERO");
     if(limitSwitch.isPressed()){
         // Serial.println("The limit switch: UNTOUCHED -> TOUCHED");
         stateMachine = 1;
