@@ -1,24 +1,41 @@
+#include <LiquidCrystal_I2C.h>
+
 #include <ezButton.h>
 #include <Arduino.h>
 #include <avr/io.h>
-#include <LiquidCrystal_I2C.h>
 #include "Hardware/multiplexor/multiplexor.h"
 #include "Hardware/stepper/distance.h"
 #include <Servo.h>
+
+#define TIMEOUT (2000)
+
+typedef enum {
+  RS_CALIBRATION,
+  RS_MEASURE,
+  RS_COMPUTE_X_Y,
+  RS_GOTO_X_Y,
+  RS_DROP
+} ResistorSorterState_t;
 
 ezButton limitSwitch(8);  // create ezButton object that attach to pin 7;
 ezButton limitSwitchEnd(9);  // create ezButton object that attach to pin 8;
 
 unsigned int stateMachine;
+ResistorSorterState_t state = RS_CALIBRATION;
+volatile int currentStepX, currentStepY = 0;
+int setpointX, setpointY = 0;
 
 // DOUBLE AXE SETUP
 const int stepPin = 3;
 const int dirPin = 2;
 const int stepsPerRevolution = 200;
-const float stepDelay = 500.0; // microseconds
+const float stepDelay = 1000.0; // microseconds
 volatile int stepCount = 0;
 volatile bool isHigh = false;
 
+
+
+uint32_t stop_time_ms = millis();
 int stop_time = 0;
 int stop_time_two = 0;
 
@@ -29,7 +46,8 @@ volatile bool stepperEnabled = false;
 LiquidCrystal_I2C lcd(0x27, 16, 2); // I2C address 0x27, 16 column and 2 rows
 
 Servo servo;
-const int buttonPin = 6; 
+const int buttonPin = 44; 
+const int servoPin = 53;
 int buttonState = 0;
 float res= 0.0;
 
@@ -55,12 +73,13 @@ void setup() {
     pinMode(stepPin, OUTPUT);
     pinMode(dirPin, OUTPUT);
 
-    stateMachine = 0;
+    stateMachine = 4;
+    state = RS_CALIBRATION;
 
 
     // ROBOT MESURE SETUP
     initialize_mux();
-    servo.attach(7);
+    servo.attach(servoPin);
     servo.write(45);
 
     lcd.init(); //initialize the lcd
@@ -73,25 +92,29 @@ void setup() {
 }
 
 void loop() {
+  for (;;) {
+    limitSwitch.loop(); // MUST call the loop() function first
+    limitSwitchEnd.loop();
+
+    stateMachineSequencer();
+  }
   limitSwitch.loop(); // MUST call the loop() function first
-  limitSwitchEnd.loop();
+  limitSwitchEnd.loop(); 
+
 
   switch (stateMachine)
   {
   case 0:
   {
-    digitalWrite(dirPin, LOW);
+    digitalWrite(dirPin, HIGH);
     stepperEnabled = true;
     stepCount = 0;
     // Serial.println("STATE ZERO");
     if(limitSwitch.isPressed()){
-        // Serial.println("The limit switch: UNTOUCHED -> TOUCHED");
+        Serial.println("The limit switch: UNTOUCHED -> TOUCHED");
         stateMachine = 1;
-    }
-
-    if(limitSwitch.isReleased()){
-        // Serial.println("The limit switch: TOUCHED -> UNTOUCHED");   
-        stateMachine = 0;
+        stop_time = 0;
+        stop_time_ms = millis();
     }
 
     break;
@@ -104,14 +127,18 @@ void loop() {
     if(switch_state == HIGH){
         // Serial.println("The limit switch: UNTOUCHED");
         stop_time = 0;
+        stop_time_ms = millis();
         stateMachine = 0;
     }
     else{
         // Serial.println("The limit switch: TOUCHED");
         stateMachine = 1;
-        if(stop_time > 50){
+
+        if((millis() - stop_time_ms) > TIMEOUT){
           stateMachine = 2;
           stop_time = 0;
+          stop_time_ms = millis();
+          Serial.println("TIMEOUT PASSED");
         } else {
           stop_time++;
         }
@@ -124,7 +151,7 @@ void loop() {
   {
 
     // Serial.println("STATE TWO");
-    digitalWrite(dirPin, HIGH);
+    digitalWrite(dirPin, LOW);
     stepCount = 0;
     stepperEnabled = true;
     stateMachine = 2;
@@ -134,10 +161,6 @@ void loop() {
       stateMachine = 3;
     }
 
-    if(limitSwitchEnd.isReleased()){
-      // Serial.println("The limit switch: TOUCHED -> UNTOUCHED"); 
-      stateMachine = 2;
-    }
     break;
   }
 
@@ -165,21 +188,98 @@ void loop() {
     break;
 
   }
+  case 4:
+  {
+    buttonState = digitalRead(buttonPin);
+    if (buttonState == HIGH){
+        prepare_measure();
+        // delay(2000);
+        res = auto_calibrate();
+        display_infos(res);
+        drop_resistance();
+        // delay(2000);
+        stateMachine = 0;
+    }
+
+    break;
+
+  }
   
   default:
     break;
   }
 }
 
+void stateMachineSequencer(void) {
+  switch(state) {
+    case RS_CALIBRATION: {
+      stepperEnabled = true;
+      digitalWrite(dirPin, HIGH);
+
+      if (limitSwitch.isPressed()) {
+        stepperEnabled = false;
+        currentStepX = 0;
+        currentStepY = 0;
+        state = RS_MEASURE;
+      }
+
+      break;
+    } case RS_MEASURE: {
+      int buttonState = digitalRead(buttonPin);
+
+      if (buttonState == HIGH){
+          prepare_measure();
+          // delay(2000);
+          res = auto_calibrate();
+          display_infos(res);
+          drop_resistance();
+          // delay(2000);
+          state = RS_COMPUTE_X_Y;
+      }
+
+      break;
+    } case RS_COMPUTE_X_Y: {
+      // Calcul X Y
+      digitalWrite(dirPin, LOW);
+      setpointX = Distance::convert_distance_into_steps(30);
+      Serial.println("THIS IS SETPOINTX");
+      Serial.println(setpointX);
+      setpointY = Distance::convert_distance_into_steps(30);
+      Serial.println("THIS IS SETPOINTY");
+      Serial.println(setpointY);
+      state = RS_GOTO_X_Y;
+      stepperEnabled = true;
+      break;
+    } case RS_GOTO_X_Y: {
+      // Serial.println("THIS IS CURRENTSTEPX");
+      // Serial.println(currentStepX);
+      // Serial.println("THIS IS CURRENTSTEPY");
+      // Serial.println(currentStepY);
+      if ((currentStepX >= setpointX) && (currentStepY >= setpointY)) {
+        state = RS_DROP;
+        stepperEnabled = false;
+      }
+      break;
+    } case RS_DROP: {
+      state = RS_CALIBRATION;
+      delay(2000);
+      break;
+    } default:
+      state = RS_CALIBRATION;
+  }
+}
+
 
 ISR(TIMER2_COMPA_vect) {
-  if (stepCount < stepsPerRevolution && stepperEnabled) {
+  if (/*stepCount < stepsPerRevolution && */ stepperEnabled) {
     if (isHigh) {
       digitalWrite(stepPin, LOW);
       isHigh = false;
     } else {
       digitalWrite(stepPin, HIGH);
       isHigh = true;
+      currentStepX++;
+      currentStepY++;
       stepCount++;
     }
   }

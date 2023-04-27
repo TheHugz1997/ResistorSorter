@@ -1,8 +1,8 @@
 //Mux control pins
-int s0 = 2;
-int s1 = 3;
-int s2 = 4;
-int s3 = 5;
+int s0 = 46;
+int s1 = 48;
+int s2 = 50;
+int s3 = 52;
 
 //Mux in "SIG" pin
 int SIG_pin = A0;

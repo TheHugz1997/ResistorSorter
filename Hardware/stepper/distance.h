@@ -10,9 +10,9 @@
 class Distance{
 
     public:
-        Distance::Distance(int dirPin, int theDistanceToTravel);
+        Distance(int dirPin, int theDistanceToTravel);
         void set_direction_pin(byte clockwise);
-        int convert_distance_into_steps(int distance);
+        static int convert_distance_into_steps(int distance);
         void rotate_n(int n);
 
 
@@ -40,8 +40,11 @@ int Distance::convert_distance_into_steps(int distance) {
     } 
     else {
         float stepsNumber = distance / DISTANCE_BY_STEP;
+        Serial.println(stepsNumber);
         int approxStepsNumber = static_cast<int>(stepsNumber);
-        int correctedStepsNumber = approxStepsNumber - CORRECTION_STEP;
+        Serial.println(approxStepsNumber);
+        int correctedStepsNumber = approxStepsNumber; //  - CORRECTION_STEP;
+        Serial.println(correctedStepsNumber);
         return correctedStepsNumber;
     }
 }
