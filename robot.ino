@@ -55,6 +55,21 @@ void loop() {
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void display_init(){
     lcd.clear();                 // clear display
     lcd.setCursor(0, 0);         // move cursor to   (0, 0)
@@ -70,7 +85,7 @@ void display_infos(float res){
     Serial.println(res);
 }
 void prepare_measure(){
-    servo.write(89);
+    servo.write(90);
 }
 
 void drop_resistance(){

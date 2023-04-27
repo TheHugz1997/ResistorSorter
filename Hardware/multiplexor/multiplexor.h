@@ -9,9 +9,10 @@ int SIG_pin = A0;
 
 float resistance;
 // breadboard resistances
-// double mux_resistance[16] = {392.0,0,3920.0,0,2710.0,0,38800.0,0,27000.0,0,393000.0, 0,270000.0,0,3920000.0,0};
+double mux_resistance[16] = {392.0,0,3920.0,0,2710.0,0,38800.0,0,27000.0,0,393000.0, 0,270000.0,0,3920000.0,0};
 // small yiming board
-double mux_resistance[16] = {390.7,0,3896.0,0,2698.0,0,38800.0,0,26790.0,0,389700.0, 0,273000.0,0,38890000.0,0};
+// double mux_resistance[16] = {390.7,0,3896.0,0,2698.0,0,38800.0,0,26790.0,0,389700.0, 0,273000.0,0,38890000.0,0};
+
 const float ranges[7][12] = {
     {1.0,1.2,1.5,1.8,2.2,2.7,3.3,3.9,4.7,5.6,6.8,8.2}, 
     {10.0,12.0,15.0,18.0,22.0,27.0,33.0,39.0,47.0,56.0,68.0,82.0}, 
@@ -93,17 +94,39 @@ float to_norm_E12(float res,int range){
   for (int i = 0; i<11;i++){
     float curr_diff = abs(ranges[range][i] - res);
     float next_diff = abs(ranges[range][i+1] -res);
-    if (i==10){
-      Serial.print("Res E12 value :");
-      Serial.println(ranges[range][11]);
-      out = ranges[range][11];
-      // return out;
-      break;
-    }
     if(curr_diff<next_diff){
       Serial.print("Res E12 value :");
       Serial.println(ranges[range][i]);
       out = ranges[range][i];
+      // return out;
+      break;
+    }
+    if (i==10){
+      float next_range_diff = abs(ranges[range+1][0] -res);
+      if(curr_diff<next_diff){
+        Serial.print("Res E12 value :");
+        Serial.println(ranges[range][i]);
+        out = ranges[range][i];
+        // return out;
+        break;
+      }
+      else{
+        if (next_range_diff < next_diff){
+          out = ranges[range+1][0];
+          break;
+        }
+        else{
+          out = ranges[range][11];
+          break;
+          // Serial.println("lé problemes");
+        }
+      }
+
+      // 9651
+      // {1000.0,1200.0,1500.0,1800.0,2200.0,2700.0,3300.0,3900.0,4700.0,5600.0,6800.0,8200.0}
+      // Serial.print("Res E12 value :");
+      // Serial.println(ranges[range][11]);
+      // out = ranges[range][11];
       // return out;
       break;
     }
@@ -140,7 +163,7 @@ float auto_calibrate(){
 
     
     
-    if (channel==14 && voltage >0.95){
+    if (channel==14 && voltage >0.5){
       Serial.println(res);
       Serial.println("(Should be greater than 1M)");
       output = to_norm_E12(res,6);
@@ -155,7 +178,7 @@ float auto_calibrate(){
       // return output;
       break;
     }
-    if (channel == 6 && voltage > 0.9){
+    if (channel == 6 && voltage > 0.95){
       Serial.println(res);
       Serial.println("(Should be between 10k and 100k)");
       output = to_norm_E12(res,4);
