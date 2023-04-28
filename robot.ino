@@ -19,19 +19,29 @@ typedef enum {
 
 ezButton limitSwitch(8);  // create ezButton object that attach to pin 7;
 ezButton limitSwitchEnd(9);  // create ezButton object that attach to pin 8;
+ezButton limitSwitchYaxis(11);
 
-unsigned int stateMachine;
+// unsigned int stateMachine;
 ResistorSorterState_t state = RS_CALIBRATION;
 volatile int currentStepX, currentStepY = 0;
 int setpointX, setpointY = 0;
 
 // DOUBLE AXE SETUP
+
+// X STEPPER SETUP
 const int stepPin = 3;
 const int dirPin = 2;
+
+// Y STEPPER SETUP
+const int stepPin2 = 6;
+const int dirpin2 = 5;
+
+
 const int stepsPerRevolution = 200;
-const float stepDelay = 1000.0; // microseconds
+const float stepDelay = 500.0; // microseconds
 volatile int stepCount = 0;
 volatile bool isHigh = false;
+volatile bool isHighY = false;
 
 
 
@@ -39,7 +49,8 @@ uint32_t stop_time_ms = millis();
 int stop_time = 0;
 int stop_time_two = 0;
 
-volatile bool stepperEnabled = false;
+volatile bool stepperXEnabled = false;
+volatile bool stepperYEnabled = false;
 
 
 // ROBOT MESURE SETUP 
@@ -59,6 +70,7 @@ void setup() {
     Serial.begin(9600);
     limitSwitch.setDebounceTime(10); // set debounce time to 10 microseconds
     limitSwitchEnd.setDebounceTime(10); // set debounce time to 10 microseconds
+    limitSwitchYaxis.setDebounceTime(10); // set debounce time to 10 microseconds
 
     cli(); // disable interrupts
     TCCR2A = 0;
@@ -73,7 +85,9 @@ void setup() {
     pinMode(stepPin, OUTPUT);
     pinMode(dirPin, OUTPUT);
 
-    stateMachine = 4;
+    pinMode(stepPin2, OUTPUT);
+    pinMode(dirpin2, OUTPUT);
+
     state = RS_CALIBRATION;
 
 
@@ -84,8 +98,8 @@ void setup() {
 
     lcd.init(); //initialize the lcd
     lcd.backlight(); //open the backlight 
-    Serial.println("Place your resistance");
-    Serial.println("");
+    // Serial.println("Place your resistance");
+    // Serial.println("");
     pinMode(buttonPin, INPUT);
     display_init();
 
@@ -93,171 +107,69 @@ void setup() {
 
 void loop() {
   for (;;) {
-    limitSwitch.loop(); // MUST call the loop() function first
+    // MUST call the loop() function first
+
+    limitSwitch.loop();
     limitSwitchEnd.loop();
+    limitSwitchYaxis.loop();
 
     stateMachineSequencer();
-  }
-  limitSwitch.loop(); // MUST call the loop() function first
-  limitSwitchEnd.loop(); 
-
-
-  switch (stateMachine)
-  {
-  case 0:
-  {
-    digitalWrite(dirPin, HIGH);
-    stepperEnabled = true;
-    stepCount = 0;
-    // Serial.println("STATE ZERO");
-    if(limitSwitch.isPressed()){
-        Serial.println("The limit switch: UNTOUCHED -> TOUCHED");
-        stateMachine = 1;
-        stop_time = 0;
-        stop_time_ms = millis();
-    }
-
-    break;
-  }
-  case 1:
-  {
-    stepperEnabled = false;
-    // Serial.println("STATE ONE");
-    int switch_state = limitSwitch.getState();
-    if(switch_state == HIGH){
-        // Serial.println("The limit switch: UNTOUCHED");
-        stop_time = 0;
-        stop_time_ms = millis();
-        stateMachine = 0;
-    }
-    else{
-        // Serial.println("The limit switch: TOUCHED");
-        stateMachine = 1;
-
-        if((millis() - stop_time_ms) > TIMEOUT){
-          stateMachine = 2;
-          stop_time = 0;
-          stop_time_ms = millis();
-          Serial.println("TIMEOUT PASSED");
-        } else {
-          stop_time++;
-        }
-    }
-
-    break;
-  }
-
-  case 2:
-  {
-
-    // Serial.println("STATE TWO");
-    digitalWrite(dirPin, LOW);
-    stepCount = 0;
-    stepperEnabled = true;
-    stateMachine = 2;
-
-    if(limitSwitchEnd.isPressed()){
-      // Serial.println("The limit switch: UNTOUCHED -> TOUCHED");
-      stateMachine = 3;
-    }
-
-    break;
-  }
-
-  case 3:
-  {
-    stepperEnabled = false;
-    // Serial.println("STATE THREE");
-    int switch_end_state = limitSwitchEnd.getState();
-    if(switch_end_state == HIGH){
-        // Serial.println("The limit switch: UNTOUCHED");
-        stop_time_two = 0;
-        stateMachine = 2;
-    }
-    else{
-        // Serial.println("The limit switch: TOUCHED");
-        stateMachine = 3;
-        if(stop_time_two > 50){
-          stateMachine = 0;
-          stop_time_two = 0;
-        } else {
-          stop_time_two++;
-        }
-    }
-
-    break;
-
-  }
-  case 4:
-  {
-    buttonState = digitalRead(buttonPin);
-    if (buttonState == HIGH){
-        prepare_measure();
-        // delay(2000);
-        res = auto_calibrate();
-        display_infos(res);
-        drop_resistance();
-        // delay(2000);
-        stateMachine = 0;
-    }
-
-    break;
-
-  }
-  
-  default:
-    break;
   }
 }
 
 void stateMachineSequencer(void) {
   switch(state) {
     case RS_CALIBRATION: {
-      stepperEnabled = true;
+      stepperXEnabled = true;
+      stepperYEnabled = true;
       digitalWrite(dirPin, HIGH);
 
-      if (limitSwitch.isPressed()) {
-        stepperEnabled = false;
+      // HIGH DIRECT FOR Y STEPPER GOES TO THE TOWER
+      digitalWrite(dirpin2, HIGH);
+
+      if (!limitSwitch.getState()) {
+        stepperXEnabled = false;
         currentStepX = 0;
-        currentStepY = 0;
-        state = RS_MEASURE;
+        Serial.println("FIRST STEPPER STOP");
       }
 
+      if (!limitSwitchYaxis.getState()) {
+          stepperYEnabled = false;
+          currentStepY = 0;
+          Serial.println("Second STEPPER STOP");
+        }
+
+      if (!limitSwitch.getState() && !limitSwitchYaxis.getState()) {
+          state = RS_MEASURE;
+      }
       break;
     } case RS_MEASURE: {
       int buttonState = digitalRead(buttonPin);
 
       if (buttonState == HIGH){
           prepare_measure();
-          // delay(2000);
           res = auto_calibrate();
           display_infos(res);
           drop_resistance();
-          // delay(2000);
           state = RS_COMPUTE_X_Y;
       }
-
       break;
     } case RS_COMPUTE_X_Y: {
       // Calcul X Y
       digitalWrite(dirPin, LOW);
       setpointX = Distance::convert_distance_into_steps(30);
-      Serial.println("THIS IS SETPOINTX");
-      Serial.println(setpointX);
+      // Serial.println("THIS IS SETPOINTX");
+      // Serial.println(setpointX);
       setpointY = Distance::convert_distance_into_steps(30);
-      Serial.println("THIS IS SETPOINTY");
-      Serial.println(setpointY);
+      // Serial.println("THIS IS SETPOINTY");
+      // Serial.println(setpointY);
       state = RS_GOTO_X_Y;
-      stepperEnabled = true;
+      stepperXEnabled = true;
       break;
     } case RS_GOTO_X_Y: {
-      // Serial.println("THIS IS CURRENTSTEPX");
-      // Serial.println(currentStepX);
-      // Serial.println("THIS IS CURRENTSTEPY");
-      // Serial.println(currentStepY);
       if ((currentStepX >= setpointX) && (currentStepY >= setpointY)) {
         state = RS_DROP;
-        stepperEnabled = false;
+        stepperXEnabled = false;
       }
       break;
     } case RS_DROP: {
@@ -271,7 +183,7 @@ void stateMachineSequencer(void) {
 
 
 ISR(TIMER2_COMPA_vect) {
-  if (/*stepCount < stepsPerRevolution && */ stepperEnabled) {
+  if (stepperXEnabled) {
     if (isHigh) {
       digitalWrite(stepPin, LOW);
       isHigh = false;
@@ -279,8 +191,17 @@ ISR(TIMER2_COMPA_vect) {
       digitalWrite(stepPin, HIGH);
       isHigh = true;
       currentStepX++;
+    }
+  }
+
+  if (stepperYEnabled) {
+    if (isHighY) {
+      digitalWrite(stepPin2, LOW);
+      isHighY = false;
+    } else {
+      digitalWrite(stepPin2, HIGH);
+      isHighY = true;
       currentStepY++;
-      stepCount++;
     }
   }
 }
