@@ -40,11 +40,8 @@ int Distance::convert_distance_into_steps(int distance) {
     } 
     else {
         float stepsNumber = distance / DISTANCE_BY_STEP;
-        Serial.println(stepsNumber);
         int approxStepsNumber = static_cast<int>(stepsNumber);
-        Serial.println(approxStepsNumber);
         int correctedStepsNumber = approxStepsNumber; //  - CORRECTION_STEP;
-        Serial.println(correctedStepsNumber);
         return correctedStepsNumber;
     }
 }

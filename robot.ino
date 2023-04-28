@@ -6,8 +6,13 @@
 #include "Hardware/multiplexor/multiplexor.h"
 #include "Hardware/stepper/distance.h"
 #include <Servo.h>
+#include <math.h>
 
 #define TIMEOUT (2000)
+#define MAX_Y_SLOTS (6)
+#define SLOT_X_SIZE (80)
+#define SLOT_Y_SIZE (35)
+#define RES_TOLERANCE (0.1)
 
 typedef enum {
   RS_CALIBRATION,
@@ -147,15 +152,20 @@ void stateMachineSequencer(void) {
     } case RS_COMPUTE_X_Y: {
       // Calcul X Y
       digitalWrite(dirPin, LOW);
-      setpointX = Distance::convert_distance_into_steps(30);
-      setpointY = Distance::convert_distance_into_steps(30);
+      digitalWrite(dirpin2, LOW);
+      computeSlotDistance(100);
+
+      // setpointX = Distance::convert_distance_into_steps(ySlotDistance);
+      // setpointY = Distance::convert_distance_into_steps(ySlotDistance);
       state = RS_GOTO_X_Y;
       stepperXEnabled = true;
+      stepperYEnabled = true;
       break;
     } case RS_GOTO_X_Y: {
       if ((currentStepX >= setpointX) && (currentStepY >= setpointY)) {
         state = RS_DROP;
         stepperXEnabled = false;
+        stepperYEnabled = false;
       }
       break;
     } case RS_DROP: {
@@ -167,6 +177,52 @@ void stateMachineSequencer(void) {
   }
 }
 
+int computeSlotDistance(int value) {
+  int xSlot, ySlot = 0;
+
+  // Y axis
+  for (int i = 0; i < MAX_Y_SLOTS; i++) {
+    float rest = (float)value / pow(10.0, (float)i);
+    Serial.println(rest);
+    if (rest < 10) {
+      ySlot = i;
+      break;
+    }
+  }
+
+  // X axis
+  float lowValue = (float)value / pow(10, ySlot);
+
+  if (1.0 - RES_TOLERANCE <= lowValue <= 1.0 + RES_TOLERANCE)
+    xSlot = 0;
+  else if (1.2 - RES_TOLERANCE <= lowValue <= 1.2 + RES_TOLERANCE)
+    xSlot = 1;
+  else if (1.5 - RES_TOLERANCE <= lowValue <= 1.5 + RES_TOLERANCE)
+    xSlot = 2;
+  else if (1.8 - RES_TOLERANCE <= lowValue <= 1.8 + RES_TOLERANCE)
+    xSlot = 3;
+  else if (2.2 - RES_TOLERANCE <= lowValue <= 2.2 + RES_TOLERANCE)
+    xSlot = 4;
+  else if (2.7 - RES_TOLERANCE <= lowValue <= 2.7 + RES_TOLERANCE)
+    xSlot = 5;
+  else if (3.3 - RES_TOLERANCE <= lowValue <= 3.3 + RES_TOLERANCE)
+    xSlot = 6;
+  else if (3.9 - RES_TOLERANCE <= lowValue <= 3.9 + RES_TOLERANCE)
+    xSlot = 7;
+  else if (4.7 - RES_TOLERANCE <= lowValue <= 4.7 + RES_TOLERANCE)
+    xSlot = 8;
+  else if (5.6 - RES_TOLERANCE <= lowValue <= 5.6 + RES_TOLERANCE)
+    xSlot = 9;
+  else if (6.8 - RES_TOLERANCE <= lowValue <= 6.8 + RES_TOLERANCE)
+    xSlot = 10;
+  else if (8.2 - RES_TOLERANCE <= lowValue <= 8.2 + RES_TOLERANCE)
+    xSlot = 11;
+
+  setpointX = Distance::convert_distance_into_steps(xSlot * SLOT_X_SIZE);
+  setpointY = Distance::convert_distance_into_steps((MAX_Y_SLOTS - ySlot) * SLOT_Y_SIZE);
+  
+  return -1;
+}
 
 ISR(TIMER2_COMPA_vect) {
   if (stepperXEnabled) {
