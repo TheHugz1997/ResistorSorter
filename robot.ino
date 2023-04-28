@@ -120,27 +120,17 @@ void loop() {
 void stateMachineSequencer(void) {
   switch(state) {
     case RS_CALIBRATION: {
-      stepperXEnabled = true;
-      stepperYEnabled = true;
+      stepperXEnabled = limitSwitch.getState();
+      stepperYEnabled = limitSwitchYaxis.getState();
       digitalWrite(dirPin, HIGH);
 
       // HIGH DIRECT FOR Y STEPPER GOES TO THE TOWER
       digitalWrite(dirpin2, HIGH);
 
-      if (!limitSwitch.getState()) {
-        stepperXEnabled = false;
+      if (!stepperXEnabled && !stepperYEnabled) {
         currentStepX = 0;
-        Serial.println("FIRST STEPPER STOP");
-      }
-
-      if (!limitSwitchYaxis.getState()) {
-          stepperYEnabled = false;
-          currentStepY = 0;
-          Serial.println("Second STEPPER STOP");
-        }
-
-      if (!limitSwitch.getState() && !limitSwitchYaxis.getState()) {
-          state = RS_MEASURE;
+        currentStepY = 0;
+        state = RS_MEASURE;
       }
       break;
     } case RS_MEASURE: {
@@ -158,11 +148,7 @@ void stateMachineSequencer(void) {
       // Calcul X Y
       digitalWrite(dirPin, LOW);
       setpointX = Distance::convert_distance_into_steps(30);
-      // Serial.println("THIS IS SETPOINTX");
-      // Serial.println(setpointX);
       setpointY = Distance::convert_distance_into_steps(30);
-      // Serial.println("THIS IS SETPOINTY");
-      // Serial.println(setpointY);
       state = RS_GOTO_X_Y;
       stepperXEnabled = true;
       break;
