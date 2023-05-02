@@ -159,9 +159,9 @@ float auto_calibrate(){
     // Serial.println(voltage);
     // Serial.print("Res value :");
     float res = calc_res(channel,voltage);
+    delay(50);
     // Serial.println(res);
 
-    
     
     if (channel==14 && voltage >0.5){
       Serial.println(res);

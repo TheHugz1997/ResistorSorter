@@ -148,17 +148,25 @@ void stateMachineSequencer(void) {
 
       if (buttonState == HIGH){
           prepare_measure();
+          delay(4000);
           res = auto_calibrate();
-          display_infos(res);
-          drop_resistance();
-          state = RS_COMPUTE_X_Y;
+          if (res< 8200000){
+            display_infos(res);
+            delay(500);
+            drop_resistance();
+            state = RS_COMPUTE_X_Y;
+          }
+          else{
+            lcd.print("failed");
+          }
+
       }
       break;
     } case RS_COMPUTE_X_Y: {
       // Calcul X Y
       digitalWrite(dirPin, LOW);
       digitalWrite(dirpin2, LOW);
-      computeSlotDistance(270000);
+      computeSlotDistance(res);
 
       // setpointX = Distance::convert_distance_into_steps(ySlotDistance);
       // setpointY = Distance::convert_distance_into_steps(ySlotDistance);
@@ -286,7 +294,7 @@ void display_infos(float res){
     Serial.println(res);
 }
 void prepare_measure(){
-    servo.write(90);
+    servo.write(82);
 }
 
 void drop_resistance(){
