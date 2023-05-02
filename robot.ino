@@ -10,9 +10,10 @@
 
 #define TIMEOUT (2000)
 #define MAX_Y_SLOTS (6)
-#define SLOT_X_SIZE (80)
+#define SLOT_X_SIZE (75)
 #define SLOT_Y_SIZE (35)
 #define RES_TOLERANCE (0.1)
+#define CENTER_Y_OFFSET (15)
 
 typedef enum {
   RS_CALIBRATION,
@@ -56,6 +57,8 @@ int stop_time_two = 0;
 
 volatile bool stepperXEnabled = false;
 volatile bool stepperYEnabled = false;
+
+volatile bool isInCalibrationMode = true;
 
 
 // ROBOT MESURE SETUP 
@@ -125,6 +128,7 @@ void loop() {
 void stateMachineSequencer(void) {
   switch(state) {
     case RS_CALIBRATION: {
+      isInCalibrationMode = true;
       stepperXEnabled = limitSwitch.getState();
       stepperYEnabled = limitSwitchYaxis.getState();
       digitalWrite(dirPin, HIGH);
@@ -133,6 +137,7 @@ void stateMachineSequencer(void) {
       digitalWrite(dirpin2, HIGH);
 
       if (!stepperXEnabled && !stepperYEnabled) {
+        isInCalibrationMode = false;
         currentStepX = 0;
         currentStepY = 0;
         state = RS_MEASURE;
@@ -153,7 +158,7 @@ void stateMachineSequencer(void) {
       // Calcul X Y
       digitalWrite(dirPin, LOW);
       digitalWrite(dirpin2, LOW);
-      computeSlotDistance(100);
+      computeSlotDistance(270000);
 
       // setpointX = Distance::convert_distance_into_steps(ySlotDistance);
       // setpointY = Distance::convert_distance_into_steps(ySlotDistance);
@@ -177,7 +182,7 @@ void stateMachineSequencer(void) {
   }
 }
 
-int computeSlotDistance(int value) {
+int computeSlotDistance(uint32_t value) {
   int xSlot, ySlot = 0;
 
   // Y axis
@@ -191,41 +196,47 @@ int computeSlotDistance(int value) {
   }
 
   // X axis
-  float lowValue = (float)value / pow(10, ySlot);
+  double lowValue = (double)value / pow(10, ySlot);
 
-  if (1.0 - RES_TOLERANCE <= lowValue <= 1.0 + RES_TOLERANCE)
+  Serial.println(value);
+  Serial.print("lowValue: ");
+  Serial.println(lowValue);
+  if ((1.0 - RES_TOLERANCE <= lowValue) && (lowValue <= 1.0 + RES_TOLERANCE))
     xSlot = 0;
-  else if (1.2 - RES_TOLERANCE <= lowValue <= 1.2 + RES_TOLERANCE)
+  else if ((1.2 - RES_TOLERANCE <= lowValue) && (lowValue <= 1.2 + RES_TOLERANCE))
     xSlot = 1;
-  else if (1.5 - RES_TOLERANCE <= lowValue <= 1.5 + RES_TOLERANCE)
+  else if ((1.5 - RES_TOLERANCE <= lowValue) && (lowValue <= 1.5 + RES_TOLERANCE))
     xSlot = 2;
-  else if (1.8 - RES_TOLERANCE <= lowValue <= 1.8 + RES_TOLERANCE)
+  else if ((1.8 - RES_TOLERANCE <= lowValue) && (lowValue <= 1.8 + RES_TOLERANCE))
     xSlot = 3;
-  else if (2.2 - RES_TOLERANCE <= lowValue <= 2.2 + RES_TOLERANCE)
+  else if ((2.2 - RES_TOLERANCE <= lowValue) && (lowValue <= 2.2 + RES_TOLERANCE))
     xSlot = 4;
-  else if (2.7 - RES_TOLERANCE <= lowValue <= 2.7 + RES_TOLERANCE)
+  else if ((2.7 - RES_TOLERANCE <= lowValue) && (lowValue <= 2.7 + RES_TOLERANCE))
     xSlot = 5;
-  else if (3.3 - RES_TOLERANCE <= lowValue <= 3.3 + RES_TOLERANCE)
+  else if ((3.3 - RES_TOLERANCE <= lowValue) && (lowValue <= 3.3 + RES_TOLERANCE))
     xSlot = 6;
-  else if (3.9 - RES_TOLERANCE <= lowValue <= 3.9 + RES_TOLERANCE)
+  else if ((3.9 - RES_TOLERANCE <= lowValue) && (lowValue <= 3.9 + RES_TOLERANCE))
     xSlot = 7;
-  else if (4.7 - RES_TOLERANCE <= lowValue <= 4.7 + RES_TOLERANCE)
+  else if ((4.7 - RES_TOLERANCE <= lowValue) && (lowValue <= 4.7 + RES_TOLERANCE))
     xSlot = 8;
-  else if (5.6 - RES_TOLERANCE <= lowValue <= 5.6 + RES_TOLERANCE)
+  else if ((5.6 - RES_TOLERANCE <= lowValue) && (lowValue <= 5.6 + RES_TOLERANCE))
     xSlot = 9;
-  else if (6.8 - RES_TOLERANCE <= lowValue <= 6.8 + RES_TOLERANCE)
+  else if ((6.8 - RES_TOLERANCE <= lowValue) && (lowValue <= 6.8 + RES_TOLERANCE))
     xSlot = 10;
-  else if (8.2 - RES_TOLERANCE <= lowValue <= 8.2 + RES_TOLERANCE)
+  else if ((8.2 - RES_TOLERANCE <= lowValue) && (lowValue <= 8.2 + RES_TOLERANCE))
     xSlot = 11;
 
+  Serial.println(xSlot);
+  Serial.println(ySlot);
+  Serial.println((MAX_Y_SLOTS - ySlot) * SLOT_Y_SIZE);
   setpointX = Distance::convert_distance_into_steps(xSlot * SLOT_X_SIZE);
-  setpointY = Distance::convert_distance_into_steps((MAX_Y_SLOTS - ySlot) * SLOT_Y_SIZE);
+  setpointY = Distance::convert_distance_into_steps((MAX_Y_SLOTS - ySlot) * SLOT_Y_SIZE + CENTER_Y_OFFSET);
   
   return -1;
 }
 
 ISR(TIMER2_COMPA_vect) {
-  if (stepperXEnabled) {
+  if (stepperXEnabled && (isInCalibrationMode || (currentStepX < setpointX) )) {
     if (isHigh) {
       digitalWrite(stepPin, LOW);
       isHigh = false;
@@ -236,7 +247,7 @@ ISR(TIMER2_COMPA_vect) {
     }
   }
 
-  if (stepperYEnabled) {
+  if (stepperYEnabled && (isInCalibrationMode || (currentStepY < setpointY) )) {
     if (isHighY) {
       digitalWrite(stepPin2, LOW);
       isHighY = false;
