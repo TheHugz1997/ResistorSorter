@@ -13,7 +13,8 @@
 #define SLOT_X_SIZE (75)
 #define SLOT_Y_SIZE (35)
 #define RES_TOLERANCE (0.1)
-#define CENTER_Y_OFFSET (15)
+#define CENTER_Y_OFFSET (5)
+#define CENTER_X_OFFSET (15)
 
 typedef enum {
   RS_CALIBRATION,
@@ -146,21 +147,33 @@ void stateMachineSequencer(void) {
     } case RS_MEASURE: {
       int buttonState = digitalRead(buttonPin);
 
-      if (buttonState == HIGH){
-          prepare_measure();
-          delay(4000);
-          res = auto_calibrate();
-          if (res< 8200000){
-            display_infos(res);
-            delay(500);
-            drop_resistance();
-            state = RS_COMPUTE_X_Y;
-          }
-          else{
-            lcd.print("failed");
-          }
+      // if (buttonState == HIGH){
+      //     prepare_measure();
+      //     delay(4000);
+      //     res = auto_calibrate();
+      //     if (res< 8200000){
+      //       display_infos(res);
+      //       delay(500);
+      //       drop_resistance();
+      //       state = RS_COMPUTE_X_Y;
+      //     }
+      //     else{
+      //       lcd.print("failed");
+      //     }
 
-      }
+      // }
+      // res = 22000;
+      // res = 47000;
+      res = 5600;
+      // res = 15;
+      // res = 22;
+      // res = 27;
+      // res = 33;
+      // res = 39;
+      // res = 47;
+      // res = 82;
+      delay(2000);
+      state = RS_COMPUTE_X_Y;
       break;
     } case RS_COMPUTE_X_Y: {
       // Calcul X Y
@@ -175,11 +188,18 @@ void stateMachineSequencer(void) {
       stepperYEnabled = true;
       break;
     } case RS_GOTO_X_Y: {
+      if (!limitSwitchEnd.getState()) {
+        stepperXEnabled = false;
+        if ((currentStepY >= setpointY)) {
+          state = RS_DROP;
+        }
+      }
       if ((currentStepX >= setpointX) && (currentStepY >= setpointY)) {
         state = RS_DROP;
         stepperXEnabled = false;
         stepperYEnabled = false;
       }
+
       break;
     } case RS_DROP: {
       state = RS_CALIBRATION;
@@ -237,7 +257,11 @@ int computeSlotDistance(uint32_t value) {
   Serial.println(xSlot);
   Serial.println(ySlot);
   Serial.println((MAX_Y_SLOTS - ySlot) * SLOT_Y_SIZE);
-  setpointX = Distance::convert_distance_into_steps(xSlot * SLOT_X_SIZE);
+  if ( xSlot < 6){
+    setpointX = Distance::convert_distance_into_steps(xSlot * SLOT_X_SIZE);
+  } else {
+    setpointX = Distance::convert_distance_into_steps(xSlot * SLOT_X_SIZE + CENTER_X_OFFSET);
+  }
   setpointY = Distance::convert_distance_into_steps((MAX_Y_SLOTS - ySlot) * SLOT_Y_SIZE + CENTER_Y_OFFSET);
   
   return -1;
