@@ -1,8 +1,13 @@
 //Mux control pins
-int s0 = 46;
-int s1 = 48;
-int s2 = 50;
-int s3 = 52;
+// int s0 = 46;
+// int s1 = 48;
+// int s2 = 50;
+// int s3 = 52;
+//Mux control pins
+int s0 = 3;
+int s1 = 4;
+int s2 = 5;
+int s3 = 6;
 
 //Mux in "SIG" pin
 int SIG_pin = A0;
@@ -75,7 +80,7 @@ float read_mux(int channel){
   // }
   // mean = mean/5;
   //return the value
-  float voltage = (val * 5.0) / 1024.0;
+  float voltage = (val * 4.6) / 1024.0;
   return voltage;
 }
 
@@ -84,7 +89,7 @@ float read_mux(int channel){
 float calc_res(int channel,float voltage){
   double Rmux = mux_resistance[channel];
   //input resistance of the mux : 70 ohms
-  resistance = ((Rmux+70.0) * voltage) / (5.0 - voltage);
+  resistance = ((Rmux+70.0) * voltage) / (4.6 - voltage);
 
   return resistance;
 }
@@ -165,8 +170,13 @@ float auto_calibrate(){
     
     if (channel==14 && voltage >0.5){
       Serial.println(res);
-      Serial.println("(Should be greater than 1M)");
       output = to_norm_E12(res,6);
+      if (output<1000000.0){
+        Serial.println("(Should be between 100k and 1M)");
+        output = to_norm_E12(res,5);
+      }else{
+        Serial.println("(Should be greater than 1M)");
+      }
       // return output;
       break;
         

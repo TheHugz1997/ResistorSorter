@@ -1,6 +1,5 @@
 {
-    "board": "arduino:avr:mega",
-    "port": "COM3",
-    "sketch": "robot.ino",
-    "configuration": "cpu=atmega2560"
+    "board": "arduino:avr:uno",
+    "port": "COM4",
+    "sketch": "robot.ino"
 }

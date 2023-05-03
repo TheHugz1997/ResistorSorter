@@ -66,8 +66,8 @@ volatile bool isInCalibrationMode = true;
 LiquidCrystal_I2C lcd(0x27, 16, 2); // I2C address 0x27, 16 column and 2 rows
 
 Servo servo;
-const int buttonPin = 44; 
-const int servoPin = 53;
+const int buttonPin = 7; 
+const int servoPin = 8;
 int buttonState = 0;
 float res= 0.0;
 
@@ -76,7 +76,7 @@ void setup() {
 
 
     // DOUBLE AXE SETUP
-    Serial.begin(9600);
+    Serial.begin(115200);
     limitSwitch.setDebounceTime(10); // set debounce time to 10 microseconds
     limitSwitchEnd.setDebounceTime(10); // set debounce time to 10 microseconds
     limitSwitchYaxis.setDebounceTime(10); // set debounce time to 10 microseconds
@@ -97,7 +97,7 @@ void setup() {
     pinMode(stepPin2, OUTPUT);
     pinMode(dirpin2, OUTPUT);
 
-    state = RS_CALIBRATION;
+    state = RS_MEASURE;
 
 
     // ROBOT MESURE SETUP
@@ -147,33 +147,34 @@ void stateMachineSequencer(void) {
     } case RS_MEASURE: {
       int buttonState = digitalRead(buttonPin);
 
-      // if (buttonState == HIGH){
-      //     prepare_measure();
-      //     delay(4000);
-      //     res = auto_calibrate();
-      //     if (res< 8200000){
-      //       display_infos(res);
-      //       delay(500);
-      //       drop_resistance();
-      //       state = RS_COMPUTE_X_Y;
-      //     }
-      //     else{
-      //       lcd.print("failed");
-      //     }
+      if (buttonState == HIGH){
+          prepare_measure();
+          delay(4000);
+          res = auto_calibrate();
+          if (res< 8200000){
+            display_infos(res);
+            delay(500);
+            drop_resistance();
+            // state = RS_COMPUTE_X_Y;
+          }
+          else{
+            lcd.clear();
+            lcd.print("failed");
+          }
 
-      // }
+      }
       // res = 22000;
       // res = 47000;
-      res = 5600;
-      // res = 15;
-      // res = 22;
-      // res = 27;
-      // res = 33;
-      // res = 39;
-      // res = 47;
-      // res = 82;
-      delay(2000);
-      state = RS_COMPUTE_X_Y;
+      // res = 5600;
+      // // res = 15;
+      // // res = 22;
+      // // res = 27;
+      // // res = 33;
+      // // res = 39;
+      // // res = 47;
+      // // res = 82;
+      // delay(2000);
+      // state = RS_COMPUTE_X_Y;
       break;
     } case RS_COMPUTE_X_Y: {
       // Calcul X Y
@@ -216,7 +217,7 @@ int computeSlotDistance(uint32_t value) {
   // Y axis
   for (int i = 0; i < MAX_Y_SLOTS; i++) {
     float rest = (float)value / pow(10.0, (float)i);
-    Serial.println(rest);
+    // Serial.println(rest);
     if (rest < 10) {
       ySlot = i;
       break;
@@ -226,9 +227,9 @@ int computeSlotDistance(uint32_t value) {
   // X axis
   double lowValue = (double)value / pow(10, ySlot);
 
-  Serial.println(value);
-  Serial.print("lowValue: ");
-  Serial.println(lowValue);
+  // Serial.println(value);
+  // Serial.print("lowValue: ");
+  // Serial.println(lowValue);
   if ((1.0 - RES_TOLERANCE <= lowValue) && (lowValue <= 1.0 + RES_TOLERANCE))
     xSlot = 0;
   else if ((1.2 - RES_TOLERANCE <= lowValue) && (lowValue <= 1.2 + RES_TOLERANCE))
@@ -254,9 +255,9 @@ int computeSlotDistance(uint32_t value) {
   else if ((8.2 - RES_TOLERANCE <= lowValue) && (lowValue <= 8.2 + RES_TOLERANCE))
     xSlot = 11;
 
-  Serial.println(xSlot);
-  Serial.println(ySlot);
-  Serial.println((MAX_Y_SLOTS - ySlot) * SLOT_Y_SIZE);
+  // Serial.println(xSlot);
+  // Serial.println(ySlot);
+  // Serial.println((MAX_Y_SLOTS - ySlot) * SLOT_Y_SIZE);
   if ( xSlot < 6){
     setpointX = Distance::convert_distance_into_steps(xSlot * SLOT_X_SIZE);
   } else {
