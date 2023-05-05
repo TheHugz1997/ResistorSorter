@@ -11,11 +11,12 @@
 #include <math.h>
 
 #define TIMEOUT (2000)
+#define MIN_Y_SLOT (1)
 #define MAX_Y_SLOTS (6)
 #define SLOT_X_SIZE (75)
 #define SLOT_Y_SIZE (35)
 #define RES_TOLERANCE (0.1)
-#define CENTER_Y_OFFSET (5)
+#define CENTER_Y_OFFSET (15)
 #define CENTER_X_OFFSET (15)
 
 typedef enum {
@@ -245,10 +246,10 @@ void stateMachineSequencer(void) {
 }
 
 int computeSlotDistance(uint32_t value) {
-  int xSlot, ySlot = 0;
+  int xSlot = 0, ySlot = 0;
 
   // Y axis
-  for (int i = 0; i < MAX_Y_SLOTS; i++) {
+  for (int i = MIN_Y_SLOT; i < MAX_Y_SLOTS + 1; i++) {
     float rest = (float)value / pow(10.0, (float)i);
     // Serial.println(rest);
     if (rest < 10) {
@@ -258,11 +259,13 @@ int computeSlotDistance(uint32_t value) {
   }
 
   // X axis
-  double lowValue = (double)value / pow(10, ySlot);
+  double lowValue = (double)value / pow(10,  ySlot);
 
   // Serial.println(value);
   // Serial.print("lowValue: ");
   // Serial.println(lowValue);
+  Serial.println(value);
+  Serial.println(lowValue);
   if ((1.0 - RES_TOLERANCE <= lowValue) && (lowValue <= 1.0 + RES_TOLERANCE))
     xSlot = 0;
   else if ((1.2 - RES_TOLERANCE <= lowValue) && (lowValue <= 1.2 + RES_TOLERANCE))
@@ -288,17 +291,23 @@ int computeSlotDistance(uint32_t value) {
   else if ((8.2 - RES_TOLERANCE <= lowValue) && (lowValue <= 8.2 + RES_TOLERANCE))
     xSlot = 11;
 
+  Serial.println("THIS IS XSLOT");
+  Serial.println(xSlot);
+  Serial.println("THIS IS YSLOT");
+  Serial.println(ySlot);
   
   // IF THE X SLOT IS LOCATED OVER THE 33 SLOT THEN THE SLOTS ARE 7.5 CM WITDH AND YOU DON'T USE THE OFFSET ANYMORE
-  if ( xSlot < 6){
+  if (xSlot < 6){
     setpointX = Distance::convert_distance_into_steps(xSlot * SLOT_X_SIZE);
   } else {
     setpointX = Distance::convert_distance_into_steps(xSlot * SLOT_X_SIZE + CENTER_X_OFFSET);
   }
+  Serial.print("setpointY: ");
+  Serial.println(setpointY);
 
   // IF THE Y SLOT IS THE FIRST ONE DON'T USE THE OFFSET (BASED ON PHYSICAL DIMENSIONS OF THE GRID)
-  if ( ySlot == 0) {
-    setpointY = Distance::convert_distance_into_steps((MAX_Y_SLOTS - ySlot) * SLOT_Y_SIZE);
+  if (ySlot == MIN_Y_SLOT) {
+    setpointY = Distance::convert_distance_into_steps((MAX_Y_SLOTS - ySlot) * SLOT_Y_SIZE + 5);
   } else {
     setpointY = Distance::convert_distance_into_steps((MAX_Y_SLOTS - ySlot) * SLOT_Y_SIZE + CENTER_Y_OFFSET);
   }
