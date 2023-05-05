@@ -172,6 +172,7 @@ void stateMachineSequencer(void) {
           }
           else{
             print_measure_failed();
+            servo.write(45);
           }
 
 
