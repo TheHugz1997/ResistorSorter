@@ -1,5 +1,7 @@
 #include <LiquidCrystal_I2C.h>
 
+
+
 #include <ezButton.h>
 #include <Arduino.h>
 #include <avr/io.h>
@@ -43,6 +45,8 @@ const int dirPin = 2;
 const int stepPin2 = 6;
 const int dirpin2 = 5;
 
+Servo servo_y_axis;
+const int servo_y_pin = 47;
 
 const int stepsPerRevolution = 200;
 const float stepDelay = 500.0; // microseconds
@@ -66,8 +70,8 @@ volatile bool isInCalibrationMode = true;
 LiquidCrystal_I2C lcd(0x27, 16, 2); // I2C address 0x27, 16 column and 2 rows
 
 Servo servo;
-const int buttonPin = 7; 
-const int servoPin = 8;
+const int buttonPin = 49; 
+const int servoPin = 51;
 int buttonState = 0;
 float res= 0.0;
 
@@ -97,8 +101,7 @@ void setup() {
     pinMode(stepPin2, OUTPUT);
     pinMode(dirpin2, OUTPUT);
 
-    state = RS_MEASURE;
-
+    state = RS_CALIBRATION;
 
     // ROBOT MESURE SETUP
     initialize_mux();
@@ -129,6 +132,9 @@ void loop() {
 void stateMachineSequencer(void) {
   switch(state) {
     case RS_CALIBRATION: {
+      servo.detach();
+      servo_y_axis.attach(servo_y_pin);
+      servo_y_axis.write(35);
       isInCalibrationMode = true;
       stepperXEnabled = limitSwitch.getState();
       stepperYEnabled = limitSwitchYaxis.getState();
@@ -145,38 +151,53 @@ void stateMachineSequencer(void) {
       }
       break;
     } case RS_MEASURE: {
+
       int buttonState = digitalRead(buttonPin);
+      // int err = 0;
+
+      servo_y_axis.detach();
+      servo.attach(servoPin);
 
       if (buttonState == HIGH){
-          prepare_measure();
+          Serial.println("Pressed");
+          servo_up();
           delay(4000);
           res = auto_calibrate();
-          if (res< 8200000){
-            display_infos(res);
-            delay(500);
-            drop_resistance();
-            // state = RS_COMPUTE_X_Y;
-          }
-          else{
-            lcd.clear();
-            lcd.print("failed");
-          }
+          // if (res< 8200000){
+          display_infos(res);
+          finish_sequence_measure();
+          servo.write(45);
+          state = RS_COMPUTE_X_Y;
+          // }
+          // else{
+          //   while(err<3){
+          //     servo.write(65);
+          //     delay(1000);
+          //     servo_up();
+          //     delay(4000);
+          //     res = auto_calibrate();
+          //     if (res < 8200000){
+          //       finish_sequence_measure();
+          //       state = RS_COMPUTE_X_Y;
+          //       break;
+          //     }
+          //     else{
+          //       lcd.print("...");
+          //       err++;
+          //     }
+          //   }
+          //   // servo.write(45);
+          //   // lcd.clear();
+          //   // lcd.setCursor(0,1);
+          //   // lcd.print("Restart");
+          //   // state = RS_MEASURE;
+          // }
 
       }
-      // res = 22000;
-      // res = 47000;
-      // res = 5600;
-      // // res = 15;
-      // // res = 22;
-      // // res = 27;
-      // // res = 33;
-      // // res = 39;
-      // // res = 47;
-      // // res = 82;
-      // delay(2000);
-      // state = RS_COMPUTE_X_Y;
       break;
     } case RS_COMPUTE_X_Y: {
+      servo.detach();
+      servo_y_axis.attach(servo_y_pin);
       // Calcul X Y
       digitalWrite(dirPin, LOW);
       digitalWrite(dirpin2, LOW);
@@ -203,8 +224,12 @@ void stateMachineSequencer(void) {
 
       break;
     } case RS_DROP: {
-      state = RS_CALIBRATION;
       delay(2000);
+      servo_y_axis.write(0);
+      delay(2000);
+      servo_y_axis.write(35);
+      delay(2000);
+      state = RS_CALIBRATION;
       break;
     } default:
       state = RS_CALIBRATION;
@@ -294,7 +319,7 @@ ISR(TIMER2_COMPA_vect) {
 
 
 void measure_sequence(){
-    prepare_measure();
+    servo_up();
     delay(2000);
     res = auto_calibrate();
     display_infos(res);
@@ -318,7 +343,7 @@ void display_infos(float res){
     lcd.print("ohms");
     Serial.println(res);
 }
-void prepare_measure(){
+void servo_up(){
     servo.write(82);
 }
 
@@ -328,4 +353,12 @@ void drop_resistance(){
     servo.write(0);
     delay(1000);
     servo.write(45);
+}
+
+void finish_sequence_measure(){
+  display_infos(res);
+  delay(500);
+  drop_resistance();
+  delay(1000);
+
 }
