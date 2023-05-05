@@ -164,10 +164,17 @@ void stateMachineSequencer(void) {
           delay(4000);
           res = auto_calibrate();
           // if (res< 8200000){
-          display_infos(res);
-          finish_sequence_measure();
-          servo.write(45);
-          state = RS_COMPUTE_X_Y;
+          if(res!= 8200000){
+            display_infos(res);
+            finish_sequence_measure();
+            servo.write(45);
+            state = RS_COMPUTE_X_Y;
+          }
+          else{
+            print_measure_failed();
+          }
+
+
           // }
           // else{
           //   while(err<3){
@@ -280,15 +287,20 @@ int computeSlotDistance(uint32_t value) {
   else if ((8.2 - RES_TOLERANCE <= lowValue) && (lowValue <= 8.2 + RES_TOLERANCE))
     xSlot = 11;
 
-  // Serial.println(xSlot);
-  // Serial.println(ySlot);
-  // Serial.println((MAX_Y_SLOTS - ySlot) * SLOT_Y_SIZE);
+  
+  // IF THE X SLOT IS LOCATED OVER THE 33 SLOT THEN THE SLOTS ARE 7.5 CM WITDH AND YOU DON'T USE THE OFFSET ANYMORE
   if ( xSlot < 6){
     setpointX = Distance::convert_distance_into_steps(xSlot * SLOT_X_SIZE);
   } else {
     setpointX = Distance::convert_distance_into_steps(xSlot * SLOT_X_SIZE + CENTER_X_OFFSET);
   }
-  setpointY = Distance::convert_distance_into_steps((MAX_Y_SLOTS - ySlot) * SLOT_Y_SIZE + CENTER_Y_OFFSET);
+
+  // IF THE Y SLOT IS THE FIRST ONE DON'T USE THE OFFSET (BASED ON PHYSICAL DIMENSIONS OF THE GRID)
+  if ( ySlot == 0) {
+    setpointY = Distance::convert_distance_into_steps((MAX_Y_SLOTS - ySlot) * SLOT_Y_SIZE);
+  } else {
+    setpointY = Distance::convert_distance_into_steps((MAX_Y_SLOTS - ySlot) * SLOT_Y_SIZE + CENTER_Y_OFFSET);
+  }
   
   return -1;
 }
@@ -334,6 +346,15 @@ void display_init(){
     lcd.setCursor(0, 0);         // move cursor to   (0, 0)
     lcd.print("Place Resistor"); 
 }
+
+void print_measure_failed(){
+  lcd.clear();
+  lcd.setCursor(0,1);
+  lcd.print("Measure failed");
+  lcd.setCursor(1,1);
+  lcd.print("Replace resistor");
+}
+
 
 void display_infos(float res){
     lcd.clear();
