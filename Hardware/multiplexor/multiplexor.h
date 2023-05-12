@@ -148,16 +148,8 @@ float to_norm_E12(float res,int range){
         else{
           out = ranges[range][11];
           break;
-          // Serial.println("lé problemes");
         }
       }
-
-      // 9651
-      // {1000.0,1200.0,1500.0,1800.0,2200.0,2700.0,3300.0,3900.0,4700.0,5600.0,6800.0,8200.0}
-      // Serial.print("Res E12 value :");
-      // Serial.println(ranges[range][11]);
-      // out = ranges[range][11];
-      // return out;
       break;
     }
 

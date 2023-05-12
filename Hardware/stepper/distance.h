@@ -10,15 +10,9 @@
 class Distance{
 
     public:
-<<<<<<< HEAD
-        Distance::Distance(int dirPin, int theDistanceToTravel);
-        void set_direction_pin(byte clockwise);
-        int convert_distance_into_steps(int distance);
-=======
         Distance(int dirPin, int theDistanceToTravel);
         void set_direction_pin(byte clockwise);
         static int convert_distance_into_steps(int distance);
->>>>>>> develop
         void rotate_n(int n);
 
 
