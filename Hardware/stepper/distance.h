@@ -10,9 +10,15 @@
 class Distance{
 
     public:
+<<<<<<< HEAD
         Distance::Distance(int dirPin, int theDistanceToTravel);
         void set_direction_pin(byte clockwise);
         int convert_distance_into_steps(int distance);
+=======
+        Distance(int dirPin, int theDistanceToTravel);
+        void set_direction_pin(byte clockwise);
+        static int convert_distance_into_steps(int distance);
+>>>>>>> develop
         void rotate_n(int n);
 
 
@@ -41,7 +47,7 @@ int Distance::convert_distance_into_steps(int distance) {
     else {
         float stepsNumber = distance / DISTANCE_BY_STEP;
         int approxStepsNumber = static_cast<int>(stepsNumber);
-        int correctedStepsNumber = approxStepsNumber - CORRECTION_STEP;
+        int correctedStepsNumber = approxStepsNumber; //  - CORRECTION_STEP;
         return correctedStepsNumber;
     }
 }
