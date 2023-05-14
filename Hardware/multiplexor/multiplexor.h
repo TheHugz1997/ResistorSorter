@@ -3,7 +3,7 @@ int s0 = 46;
 int s1 = 48;
 int s2 = 50;
 int s3 = 52;
-//Mux control pins
+//Mux arduino uno control pins
 // int s0 = 3;
 // int s1 = 4;
 // int s2 = 5;
@@ -20,8 +20,6 @@ float resistance;
 // breadboard resistances
 double mux_resistance[16] = {392.0,0,3920.0,0,2710.0,0,38800.0,0,27000.0,0,393000.0, 0,270000.0,0,3920000.0,0};
 
-// small yiming board
-// double mux_resistance[16] = {390.7,0,3896.0,0,2698.0,0,38800.0,0,26790.0,0,389700.0, 0,273000.0,0,38890000.0,0};
 
 const float ranges[7][12] = {
     {1.0,1.2,1.5,1.8,2.2,2.7,3.3,3.9,4.7,5.6,6.8,8.2}, 
@@ -45,10 +43,6 @@ void initialize_mux(){
   pinMode(s2, OUTPUT); 
   pinMode(s3, OUTPUT); 
 
-  // digitalWrite(s0, HIGH);
-  // digitalWrite(s1, HIGH);
-  // digitalWrite(s2, HIGH);
-  // digitalWrite(s3, HIGH);
   digitalWrite(s0, LOW);
   digitalWrite(s1, LOW);
   digitalWrite(s2, LOW);
@@ -85,20 +79,7 @@ float read_mux(int channel){
     digitalWrite(controlPin[i], muxChannel[channel][i]);
   }
 
-  //read the value at the SIG pin
   int val = analogRead(SIG_pin);
-  
-  // int mean = 0;
-  // for(int i = 0; i <5;i++){
-  //   mean += analogRead(SIG_pin);
-  //   delay(250);
-  // }
-  // mean = mean/5;
-  //return the value
-  // float realVcc = analogRead(realVcc_pin);
-  // realVcc = (realVcc * 5.04) / 1024.0;
-  // Serial.print("vcc");
-  // Serial.println(realVcc);
   float voltage = (val * 5.0) / 1024.0;
   return voltage;
 }
@@ -107,13 +88,7 @@ float read_mux(int channel){
 
 float calc_res(int channel,float voltage){
   double Rmux = mux_resistance[channel];
-  //input resistance of the mux : 70 ohms
-  // float realVcc = analogRead(realVcc_pin);
-  // realVcc = (realVcc * 5.04) / 1024.0;
-  // realVccGlobal = voltage;
-  // Serial.println(realVcc);
   resistance = ((Rmux+65) * voltage) / (5.0 - voltage);
-
   return resistance;
 }
 
@@ -148,20 +123,10 @@ float to_norm_E12(float res,int range){
         else{
           out = ranges[range][11];
           break;
-          // Serial.println("lé problemes");
         }
       }
-
-      // 9651
-      // {1000.0,1200.0,1500.0,1800.0,2200.0,2700.0,3300.0,3900.0,4700.0,5600.0,6800.0,8200.0}
-      // Serial.print("Res E12 value :");
-      // Serial.println(ranges[range][11]);
-      // out = ranges[range][11];
-      // return out;
       break;
     }
-
-    
   }
   return out;
 
@@ -169,17 +134,10 @@ float to_norm_E12(float res,int range){
 
 float auto_calibrate(){
   float output = 0.0;
-  // Umes = (Rinc/Rmux+Rinc)* 5V
   Serial.println("auto_calibrating...");
   Serial.println("");
   for(int channel =14; channel>=0;channel-=2){ 
-
-    // Serial.print("Input channel ");
-    // Serial.println(channel);
-    // Serial.print("Voltage :");
-
     float voltage = read_mux(channel);
-
     float mean = 0;
     for(int i = 0; i <50;i++){
       mean += read_mux(channel);
@@ -188,11 +146,9 @@ float auto_calibrate(){
     mean = mean/50;
     voltage = mean;
 
-    // Serial.println(voltage);
-    // Serial.print("Res value :");
+
     float res = calc_res(channel,voltage);
     delay(50);
-    // Serial.println(res);
 
     
     if (channel==14 && voltage >0.5){
@@ -235,12 +191,6 @@ float auto_calibrate(){
     if (channel == 0 && voltage > 0.01){
       Serial.println(res);
       if(res>92.0){
-        // force channel two for more precision
-        //voltage = read_mux(2);
-        //res = calc_res(2,voltage);
-        //res = round(res * 0.1) / 0.;
-        // Serial.print("Recalibrated res : ");
-        // Serial.println(res);
         output = to_norm_E12(res+5.0,2);
         Serial.println("(Should be between 100 and 1k)");
         // return output;
