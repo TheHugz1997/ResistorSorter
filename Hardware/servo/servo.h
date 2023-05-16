@@ -1,21 +1,13 @@
 #include <Servo.h>
 
+int servo_pin = 6;
 Servo servo;
 
-class MyServo{
-    public:
-        MyServo::MyServo(int pin);
-        void rotate(int pin);
-    private:
-        Servo servo;
-};
-
-
-MyServo::MyServo(int pin){
-    MyServo::servo = Servo();
-    MyServo::servo.attach(pin);
+void initialize_servo(){
+    servo.attach(servo_pin);
 }
 
-void MyServo::rotate(int angle){
-    MyServo::servo.write(angle);
+
+void rotate_servo(int angle){
+    servo.write(angle);
 }
