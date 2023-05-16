@@ -37,7 +37,7 @@ Distance::Distance(int directionPin, int stepPin){
 }
 
 int Distance::convert_distance_into_steps(int distance) {
-    if(distance >= 950) {
+    if(distance > 950) {
         return 950;
     } 
     else {
