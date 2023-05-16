@@ -3,7 +3,7 @@ int s0 = 46;
 int s1 = 48;
 int s2 = 50;
 int s3 = 52;
-//Mux arduino uno control pins
+//Mux arduino mega control pins
 // int s0 = 3;
 // int s1 = 4;
 // int s2 = 5;

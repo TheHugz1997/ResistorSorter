@@ -19,6 +19,8 @@
 #define CENTER_Y_OFFSET (15)
 #define CENTER_X_OFFSET (15)
 
+
+// Creation of the Enum that will contain the sequences of the FSM
 typedef enum {
   RS_CALIBRATION,
   RS_MEASURE,
@@ -27,49 +29,63 @@ typedef enum {
   RS_DROP
 } ResistorSorterState_t;
 
-ezButton limitSwitch(8);  // create ezButton object that attach to pin 7;
-ezButton limitSwitchEnd(9);  // create ezButton object that attach to pin 8;
-ezButton limitSwitchYaxis(11);
 
-// unsigned int stateMachine;
+// First state of the FSM at the start of the process
 ResistorSorterState_t state = RS_CALIBRATION;
 volatile int currentStepX, currentStepY = 0;
 int setpointX, setpointY = 0;
 
-// DOUBLE AXE SETUP
 
-// X STEPPER SETUP
+/*
+
+  ***** CARTESIAN ROBOT CONFIGURATION *****
+
+  Take into account that the X axis stepper goes in the direction of the Arduino if dirpin is on HIGH
+  Take into account that the Y axis stepper goes in the direction of the tower (moves away from X axis) if dirpin2 is on HIGH
+
+*/
+
+// create ezButton object (in our case switches) that are attached to a specific pin
+ezButton limitSwitch(8);
+ezButton limitSwitchEnd(9);
+ezButton limitSwitchYaxis(11);
+
+// X AXIS STEPPER SETUP
 const int stepPin = 3;
 const int dirPin = 2;
 
-// Y STEPPER SETUP
+// Y AXIS STEPPER SETUP
 const int stepPin2 = 6;
 const int dirpin2 = 5;
 
+// Y AXIS SERVO SETUP
 Servo servo_y_axis;
 const int servo_y_pin = 47;
 
+// CONFIGURATION OF THE INTERRUPT SETTINGS
 const int stepsPerRevolution = 200;
 const float stepDelay = 500.0; // microseconds
 volatile int stepCount = 0;
 volatile bool isHigh = false;
 volatile bool isHighY = false;
-
-
-
 uint32_t stop_time_ms = millis();
 int stop_time = 0;
 int stop_time_two = 0;
 
+// FLAGS USED FOR ENABLE OR DISABLE THE STEPPERS OR THE SIGNAL IF THE ROBOT IS IN CALIBRATION MODE
 volatile bool stepperXEnabled = false;
 volatile bool stepperYEnabled = false;
-
 volatile bool isInCalibrationMode = true;
 
 
-// ROBOT MESURE SETUP 
-LiquidCrystal_I2C lcd(0x27, 16, 2); // I2C address 0x27, 16 column and 2 rows
+/*
 
+  ***** ROBOT'S MEASURE PART CONFIGURATION *****
+
+*/
+
+// I2C address 0x27, 16 column and 2 rows
+LiquidCrystal_I2C lcd(0x27, 16, 2);
 Servo servo;
 const int buttonPin = 49; 
 const int servoPin = 51;
@@ -77,14 +93,15 @@ int buttonState = 0;
 float res= 0.0;
 
 
+
 void setup() {
 
-
-    // DOUBLE AXE SETUP
     Serial.begin(115200);
-    limitSwitch.setDebounceTime(10); // set debounce time to 10 microseconds
-    limitSwitchEnd.setDebounceTime(10); // set debounce time to 10 microseconds
-    limitSwitchYaxis.setDebounceTime(10); // set debounce time to 10 microseconds
+
+    // SET LIMITSWITCH DEBOUNCE TIME TO 10 Micro Seconds
+    limitSwitch.setDebounceTime(10); 
+    limitSwitchEnd.setDebounceTime(10);
+    limitSwitchYaxis.setDebounceTime(10);
 
     cli(); // disable interrupts
     TCCR2A = 0;
@@ -96,6 +113,7 @@ void setup() {
     TIMSK2 |= (1 << OCIE2A);
     sei(); // enable interrupts
 
+    // STEPPERS I/O
     pinMode(stepPin, OUTPUT);
     pinMode(dirPin, OUTPUT);
 
@@ -108,11 +126,8 @@ void setup() {
     initialize_mux();
     servo.attach(servoPin);
     servo.write(45);
-
-    lcd.init(); //initialize the lcd
+    lcd.init(); 
     lcd.backlight(); //open the backlight 
-    // Serial.println("Place your resistance");
-    // Serial.println("");
     pinMode(buttonPin, INPUT);
     display_init();
 
@@ -127,6 +142,8 @@ void loop() {
     limitSwitchEnd.loop();
     limitSwitchYaxis.loop();
 
+    // STATE MACHINE
+
     stateMachineSequencer();
   }
 }
@@ -140,9 +157,8 @@ void stateMachineSequencer(void) {
       isInCalibrationMode = true;
       stepperXEnabled = limitSwitch.getState();
       stepperYEnabled = limitSwitchYaxis.getState();
-      digitalWrite(dirPin, HIGH);
 
-      // HIGH DIRECT FOR Y STEPPER GOES TO THE TOWER
+      digitalWrite(dirPin, HIGH);
       digitalWrite(dirpin2, HIGH);
 
       if (!stepperXEnabled && !stepperYEnabled) {
@@ -155,7 +171,6 @@ void stateMachineSequencer(void) {
     } case RS_MEASURE: {
 
       int buttonState = digitalRead(buttonPin);
-      // int err = 0;
 
       servo_y_axis.detach();
       servo.attach(servoPin);
@@ -194,7 +209,7 @@ void stateMachineSequencer(void) {
       servo.detach();
       servo_y_axis.attach(servo_y_pin);
 
-      // Calcul X Y
+
       digitalWrite(dirPin, LOW);
       digitalWrite(dirpin2, LOW);
       computeSlotDistance(res);
@@ -231,13 +246,13 @@ void stateMachineSequencer(void) {
   }
 }
 
+
 void computeSlotDistance(uint32_t value) {
   int xSlot = 0, ySlot = 0;
 
   // Y axis
   for (int i = MIN_Y_SLOT; i < MAX_Y_SLOTS + 1; i++) {
     float rest = (float)value / pow(10.0, (float)i);
-    // Serial.println(rest);
     if (rest < 10) {
       ySlot = i;
       break;
@@ -287,6 +302,7 @@ void computeSlotDistance(uint32_t value) {
   }
 }
 
+
 ISR(TIMER2_COMPA_vect) {
   if (stepperXEnabled && (isInCalibrationMode || (currentStepX < setpointX) )) {
     if (isHigh) {
@@ -324,16 +340,18 @@ void measure_sequence(){
 
 
 void display_init(){
-    lcd.clear();                 // clear display
-    lcd.setCursor(0, 0);         // move cursor to   (0, 0)
+    lcd.clear();
+    lcd.setCursor(0, 0);
     lcd.print("Place Resistor"); 
 }
+
 
 void display_message(String msg){
   lcd.clear();
   lcd.setCursor(0,1);
   lcd.print(msg);
 }
+
 
 void print_measure_failed(){
   lcd.clear();
@@ -353,15 +371,18 @@ void display_infos(float res){
     Serial.println(res);
 }
 
+
 void servo_up(){
     servo.write(82);
 }
+
 
 void drop_resistance(){
     servo.write(0);
     delay(1000);
     servo.write(45);
 }
+
 
 void finish_sequence_measure(){
   display_infos(res);
